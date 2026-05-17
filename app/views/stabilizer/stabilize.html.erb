@@ -8,7 +8,10 @@
           method: :post,
           local: true,
           multipart: true,
-          html: { class: "folder-form", data: { controller: "folder", turbo: false } } do |form| %>
+          html: {
+            class: "folder-form",
+            data: { controller: "folder", action: "submit->folder#submit", turbo: false }
+          } do |form| %>
       <%= form.label :timelapse_folder, "Choose folder", class: "folder-picker" do %>
         Select Folder
         <%= form.file_field :timelapse_folder,
@@ -19,12 +22,19 @@
               class: "folder-input",
               data: { action: "folder#displayFiles" } %>
       <% end %>
+      <%= hidden_field_tag :timelapse_metadata, "", data: { folder_target: "metadata" } %>
 
       <section class="file-list" data-folder-target="output" aria-live="polite">
         <p class="file-list-empty">No image folder selected yet.</p>
       </section>
 
       <%= form.submit "Send to Ruby", class: "enter-button upload-button" %>
+
+      <section class="render-progress" data-folder-target="progress" hidden>
+        <p data-folder-target="message">Waiting to render...</p>
+        <progress value="0" max="100" data-folder-target="progressBar"></progress>
+        <video controls data-folder-target="video" hidden></video>
+      </section>
     <% end %>
   </div>
 </main>

@@ -11,4 +11,6 @@ Rails.application.routes.draw do
 
   get "stabilize", to: "stabilizer#stabilize"
   post "stabilize", to: "stabilizer#upload"
+  get "stabilize/status/:job_id", to: "stabilizer#status", as: :stabilizer_status
+  get "stabilize/video/:job_id", to: "stabilizer#video", as: :stabilizer_video
 end

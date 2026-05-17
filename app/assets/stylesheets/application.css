@@ -163,3 +163,35 @@ p {
   font-size: 0.9rem;
   white-space: nowrap;
 }
+
+.render-progress {
+  display: grid;
+  gap: 0.85rem;
+  justify-items: center;
+  margin-top: 1.25rem;
+  width: min(42rem, 100%);
+}
+
+.render-progress[hidden] {
+  display: none;
+}
+
+.render-progress p {
+  color: #b9d9e6;
+  margin: 0;
+}
+
+.render-progress progress {
+  accent-color: #2dd4bf;
+  height: 1rem;
+  width: 100%;
+}
+
+.render-progress video {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.28);
+  margin-top: 0.5rem;
+  max-height: 28rem;
+  width: 100%;
+}
