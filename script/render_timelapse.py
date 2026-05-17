@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-FPS = 30
+FPS = 5
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 
 
@@ -56,9 +56,8 @@ def main():
         for image in images:
             file_list.write(f"file '{image.as_posix()}'\n")
             file_list.write(f"duration {1 / FPS}\n")
-        file_list.write(f"file '{images[-1].as_posix()}'\n")
 
-    write_status(status_path, "running", 35, "Rendering MP4 at 30fps...")
+    write_status(status_path, "running", 35, "Rendering MP4...")
 
     total_seconds = max(len(images) / FPS, 1 / FPS)
     command = [
@@ -75,6 +74,8 @@ def main():
         "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
         "-r",
         str(FPS),
+        "-frames:v",
+        str(len(images)),
         "-movflags",
         "+faststart",
         "-progress",
@@ -87,9 +88,12 @@ def main():
     for line in process.stdout:
         key, _, value = line.strip().partition("=")
         if key == "out_time_ms":
+            if not value.isdigit():
+                continue
+
             seconds = int(value) / 1_000_000
             progress = min(95, 35 + round((seconds / total_seconds) * 60))
-            write_status(status_path, "running", progress, "Rendering MP4 at 30fps...")
+            write_status(status_path, "running", progress, "Rendering MP4...")
 
     stderr = process.stderr.read()
     return_code = process.wait()
