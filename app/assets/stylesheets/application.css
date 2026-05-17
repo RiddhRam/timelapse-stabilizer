@@ -81,7 +81,10 @@ p {
 }
 
 .folder-form {
+  display: grid;
+  justify-items: center;
   margin-top: 1rem;
+  width: min(42rem, 100%);
 }
 
 .folder-picker {
@@ -112,6 +115,10 @@ p {
   max-height: 18rem;
   overflow: auto;
   width: min(42rem, 100%);
+}
+
+.upload-button {
+  margin-top: 1.25rem;
 }
 
 .file-list h2 {

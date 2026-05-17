@@ -10,4 +10,5 @@ Rails.application.routes.draw do
   root "home#index"
 
   get "stabilize", to: "stabilizer#stabilize"
+  post "stabilize", to: "stabilizer#upload"
 end

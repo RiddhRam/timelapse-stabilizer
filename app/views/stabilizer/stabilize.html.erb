@@ -2,16 +2,18 @@
   <div class="home-content">
     <h1>Stabilizer</h1>
     <p>Upload a timelapse and prepare it for stabilization.</p>
-    <small>(.png, .jpg, .jpeg and .webp supported)</p>
+    <small>(.png, .jpg, .jpeg and .webp supported)</small>
 
-    <%= form_with url: "#",
-          method: :get,
+    <%= form_with url: "/stabilize",
+          method: :post,
           local: true,
-          html: { class: "folder-form", data: { controller: "folder" } } do |form| %>
+          multipart: true,
+          html: { class: "folder-form", data: { controller: "folder", turbo: false } } do |form| %>
       <%= form.label :timelapse_folder, "Choose folder", class: "folder-picker" do %>
         Select Folder
         <%= form.file_field :timelapse_folder,
               multiple: true,
+              include_hidden: false,
               webkitdirectory: true,
               directory: true,
               class: "folder-input",
@@ -21,6 +23,8 @@
       <section class="file-list" data-folder-target="output" aria-live="polite">
         <p class="file-list-empty">No image folder selected yet.</p>
       </section>
+
+      <%= form.submit "Send to Ruby", class: "enter-button upload-button" %>
     <% end %>
   </div>
 </main>
