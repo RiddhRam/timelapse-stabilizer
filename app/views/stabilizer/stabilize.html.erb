@@ -2,5 +2,25 @@
   <div class="home-content">
     <h1>Stabilizer</h1>
     <p>Upload a timelapse and prepare it for stabilization.</p>
+    <small>(.png, .jpg, .jpeg and .webp supported)</p>
+
+    <%= form_with url: "#",
+          method: :get,
+          local: true,
+          html: { class: "folder-form", data: { controller: "folder" } } do |form| %>
+      <%= form.label :timelapse_folder, "Choose folder", class: "folder-picker" do %>
+        Select Folder
+        <%= form.file_field :timelapse_folder,
+              multiple: true,
+              webkitdirectory: true,
+              directory: true,
+              class: "folder-input",
+              data: { action: "folder#displayFiles" } %>
+      <% end %>
+
+      <section class="file-list" data-folder-target="output" aria-live="polite">
+        <p class="file-list-empty">No image folder selected yet.</p>
+      </section>
+    <% end %>
   </div>
 </main>
