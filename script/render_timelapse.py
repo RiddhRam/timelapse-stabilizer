@@ -2,12 +2,14 @@
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 FPS = 5
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+VIDEO_FILTER = "format=yuv420p"
 
 
 def write_status(status_path, status, progress, message):
@@ -26,11 +28,50 @@ def image_sort_key(path, metadata_by_name):
     return os.path.getmtime(path)
 
 
+def run_command(command):
+    process = subprocess.run(command, capture_output=True, text=True)
+
+    if process.returncode != 0:
+        raise RuntimeError(process.stderr[-1200:] or "ffmpeg failed.")
+
+
+def image_dimensions(image_path):
+    process = subprocess.run([
+        "/opt/homebrew/bin/ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height",
+        "-of",
+        "json",
+        str(image_path),
+    ], capture_output=True, text=True)
+
+    if process.returncode != 0:
+        raise RuntimeError(process.stderr[-1200:] or "Could not read image dimensions.")
+
+    stream = json.loads(process.stdout)["streams"][0]
+    width = int(stream["width"])
+    height = int(stream["height"])
+
+    return width - (width % 2), height - (height % 2)
+
+
+def frame_filter(width, height):
+    return (
+        f"scale={width}:{height}:force_original_aspect_ratio=decrease:flags=lanczos,"
+        f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black,"
+        "format=rgb24"
+    )
+
+
 def main():
     input_dir, metadata_path, output_path, status_path = sys.argv[1:5]
     input_dir = Path(input_dir)
     output_path = Path(output_path)
-    concat_path = output_path.with_suffix(".txt")
+    frames_dir = output_path.parent / "frames"
 
     write_status(status_path, "running", 5, "Reading image timestamps...")
 
@@ -50,12 +91,35 @@ def main():
         write_status(status_path, "error", 0, "No supported images were uploaded.")
         return 1
 
-    write_status(status_path, "running", 20, "Ordering images...")
+    write_status(status_path, "running", 20, "Normalizing frames...")
 
-    with concat_path.open("w") as file_list:
-        for image in images:
-            file_list.write(f"file '{image.as_posix()}'\n")
-            file_list.write(f"duration {1 / FPS}\n")
+    if frames_dir.exists():
+        shutil.rmtree(frames_dir)
+    frames_dir.mkdir(parents=True)
+
+    try:
+        target_width, target_height = image_dimensions(images[0])
+        normalize_filter = frame_filter(target_width, target_height)
+
+        for index, image in enumerate(images):
+            frame_path = frames_dir / f"frame_{index:06d}.png"
+            run_command([
+                "/opt/homebrew/bin/ffmpeg",
+                "-y",
+                "-i",
+                str(image),
+                "-vf",
+                normalize_filter,
+                "-frames:v",
+                "1",
+                str(frame_path),
+            ])
+
+            progress = 20 + round(((index + 1) / len(images)) * 30)
+            write_status(status_path, "running", progress, "Normalizing frames...")
+    except RuntimeError as error:
+        write_status(status_path, "error", 0, str(error))
+        return 1
 
     write_status(status_path, "running", 35, "Rendering MP4...")
 
@@ -64,18 +128,32 @@ def main():
         "/opt/homebrew/bin/ffmpeg",
         "-y",
         "-nostats",
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        str(concat_path),
-        "-vf",
-        "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
-        "-r",
+        "-framerate",
         str(FPS),
+        "-i",
+        str(frames_dir / "frame_%06d.png"),
+        "-vf",
+        VIDEO_FILTER,
         "-frames:v",
         str(len(images)),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        "12",
+        "-tune",
+        "stillimage",
+        "-x264-params",
+        "keyint=1:min-keyint=1:scenecut=0:bframes=0:colorprim=bt709:transfer=bt709:colormatrix=bt709",
+        "-pix_fmt",
+        "yuv420p",
+        "-color_primaries",
+        "bt709",
+        "-color_trc",
+        "bt709",
+        "-colorspace",
+        "bt709",
         "-movflags",
         "+faststart",
         "-progress",
